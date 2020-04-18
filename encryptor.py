@@ -14,9 +14,9 @@ parser.add_argument('--input-file',
 parser.add_argument('--output-file',
                     help='Путь к выходному файлу')
 parser.add_argument('--model-file',
-                    help='Путь к выходному файлу')
+                    help='Путь к модели')
 parser.add_argument('--text-file',
-                    help='Путь к выходному файлу')
+                    help='Путь к взламываемому файлу')
 args = parser.parse_args()
 
 
