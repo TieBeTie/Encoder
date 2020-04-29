@@ -1,35 +1,59 @@
 import argparse
 import sys
 import json
+import string
 
 parser = argparse.ArgumentParser(description='Encoder')
-parser.add_argument("coder",
-                    help='Выберите действие  encode/decode/train/hack')
-parser.add_argument('--cipher',
-                    help='Какой шифр хотите использовать caesar|vigenere')
-parser.add_argument('--key',
-                    help='Какой ключ хотите использовать <number>|<word>')
-parser.add_argument('--input-file',
-                    help='Путь к входному файлу')
-parser.add_argument('--output-file',
-                    help='Путь к выходному файлу')
-parser.add_argument('--model-file',
-                    help='Путь к модели')
-parser.add_argument('--text-file',
-                    help='Путь к взламываемому файлу')
+subparsers = parser.add_subparsers()
+
+parser_encode = subparsers.add_parser('encode', help='Шифратор')
+parser_encode.set_defaults(mode='encode')
+parser_encode.add_argument('--cipher', choices=['caesar', 'vignere'],
+                           required=True, help='Введите шифр')
+parser_encode.add_argument('--key', help='Ключ шифра', required=True)
+parser_encode.add_argument('--input-file', help='Путь к входному файлу')
+parser_encode.add_argument('--output-file', help='Путь к выходному файлу')
+
+parser_decode = subparsers.add_parser('decode', help='Расшифратор')
+parser_decode.set_defaults(mode='decode')
+parser_decode.add_argument('--cipher', choices=['caesar', 'vignere'],
+                           required=True, help='Введите шифр')
+parser_decode.add_argument('--key', help='Ключ шифра', required=True)
+parser_decode.add_argument('--input-file', help='Путь к входному файлу')
+parser_decode.add_argument('--output-file', help='Путь к выходному файлу')
+
+parser_train = subparsers.add_parser('train', help='Искусственное обучение')
+parser_train.set_defaults(mode='train')
+parser_train.add_argument('--cipher', choices=['caesar', 'vignere'],
+                          required=True, help='Введите шифр')
+parser_train.add_argument('--key', help='Ключ шифра', required=True)
+parser_train.add_argument('--input-file', help='Путь к входному файлу')
+parser_train.add_argument('--output-file', help='Путь к выходному файлу')
+
+parser_hack = subparsers.add_parser('hack', help='Взлом by Vladislav Hacker')
+parser_hack.set_defaults(mode='hack')
+parser_hack.add_argument('--cipher', choices=['caesar', 'vignere'],
+                         required=True, help='Введите шифр')
+parser_hack.add_argument('--input-file', help='Путь к входному файлу')
+parser_hack.add_argument('--output-file', help='Путь к выходному файлу')
+parser_hack.add_argument('--model-file', help='Модель обучения', required=True)
+
 args = parser.parse_args()
 
 
-def ceaser(input_text, key_=0):
+def caeser(input_text, key_=0):
     result = ""
     key_ = int(key_)
+    lowercase_eng = string.ascii_lowercase
+    uppercase_eng = string.ascii_uppercase
+
     for sym in input_text:
         if sym.islower():
-            tmp_order = ord(sym) - ord('a')
-            result += chr((tmp_order + key_) % 26 + ord('a'))
+            result += lowercase_eng[(ord(sym) - ord(lowercase_eng[0]) +
+                                    key_) % len(lowercase_eng)]
         elif sym.isupper():
-            tmp_order = ord(sym) - ord('A')
-            result += chr((tmp_order + key_) % 26 + ord('A'))
+            result += uppercase_eng[(ord(sym) - ord(uppercase_eng[0]) +
+                                    key_) % len(uppercase_eng)]
         else:
             result += sym
     return result
@@ -38,13 +62,17 @@ def ceaser(input_text, key_=0):
 def make_key_reverse(input_key=''):
     temp_key = input_key
     reversed_key = ''
-    for x in temp_key:
-        if x.islower():
-            tmp_ord = ord(x) - ord('a')
-            reversed_key += chr((26 - tmp_ord) % 26 + ord('a'))
-        if x.isupper():
-            tmp_ord = ord(x) - ord('A')
-            reversed_key += chr((26 - tmp_ord) % 26 + ord('A'))
+    lowercase_eng = string.ascii_lowercase
+    uppercase_eng = string.ascii_uppercase
+
+    for sym in temp_key:
+        tmp_ord = ord(sym) - ord(lowercase_eng[0])
+        if sym.islower():
+            reversed_key += lowercase_eng[len(lowercase_eng) -
+                                          (ord(sym) - ord(lowercase_eng[0]))]
+        if sym.isupper():
+            reversed_key += uppercase_eng[len(uppercase_eng) -
+                                          (ord(sym) - ord(uppercase_eng[0]))]
     return reversed_key
 
 
@@ -55,16 +83,21 @@ def vignere(input_text, encrypt_key='', encrypt_type='encode'):
     result = ''
     temp_key = encrypt_key.lower()
     key_num = 0
+    lowercase_eng = string.ascii_lowercase
+    uppercase_eng = string.ascii_uppercase
+
     for sym in input_text:
-        if sym.isupper():
-            tmp_order = ord(sym) - ord('A')
-            key_order = ord(temp_key[key_num].upper()) - ord('A')
-            result += chr((tmp_order + key_order) % 26 + ord('A'))
+        if sym.islower():
+            tmp_order = ord(sym) - ord(lowercase_eng[0])
+            key_order = ord(temp_key[key_num]) - ord(lowercase_eng[0])
+            result += lowercase_eng[(tmp_order + key_order) %
+                                    len(lowercase_eng)]
             key_num += 1
-        elif sym.islower():
-            tmp_order = ord(sym) - ord('a')
-            key_order = ord(temp_key[key_num]) - ord('a')
-            result += chr((tmp_order + key_order) % 26 + ord('a'))
+        elif sym.isupper():
+            tmp_order = ord(sym) - ord(uppercase_eng[0])
+            key_order = ord(temp_key[key_num].upper()) - ord(uppercase_eng[0])
+            result += uppercase_eng[(tmp_order + key_order) %
+                                    len(uppercase_eng)]
             key_num += 1
         else:
             result += sym
@@ -82,7 +115,7 @@ def letter_nums(word):
 
 
 def count_stat(word):
-    alphabet = "abcdefghijklmnopqrstuvwxyz"
+    alphabet = string.ascii_lowercase
     result = {}
     temp_word = word.lower()
     letter_size = letter_nums(temp_word)
@@ -95,38 +128,39 @@ def count_stat(word):
     return result
 
 
-def train(text, json_file):
+def train(text, model):
     statistics = count_stat(text)
-    data_file = open(json_file, 'w')
+    data_file = open(model, 'w')
     data_file.write(json.dumps(statistics, indent=3))
     data_file.close()
 
 
 def minus_stats(stats_1, stats_2):
-    summa = float(0)
+    sum = float(0)
     for x in stats_1.keys():
-        summa += abs(stats_1[x] - stats_2[x])
-    return summa
+        sum += abs(stats_1[x] - stats_2[x])
+    return sum
 
 
 def hack_caesar(encoded_text, default_stats_):
     best_index = 27
-    best_stats = 20000000000000
+    best_stats = None
 
     for i in range(1, 27):
-        stats_tmp = count_stat(ceaser(str(encoded_text), i))
+        stats_tmp = count_stat(caeser(str(encoded_text), i))
         difference = minus_stats(default_stats_, stats_tmp)
         if difference < best_stats:
             best_stats = difference
             best_index = i
 
-    result = ceaser(encoded_text, best_index)
+    result = caeser(encoded_text, best_index)
     return result
+
 
 input_string = ''
 output_string = ''
 
-if args.coder == 'encode' or args.coder == 'decode' or args.coder == 'hack':
+if args.mode == 'encode' or args.mode == 'decode' or args.mode == 'hack':
     if args.input_file:
         input_file = open(args.input_file, 'r')
         input_string = input_file.read()
@@ -136,13 +170,13 @@ if args.coder == 'encode' or args.coder == 'decode' or args.coder == 'hack':
 
 if args.cipher == "caesar":
     key = int(args.key)
-    if args.coder == "decode":
+    if args.mode == "decode":
         key = -key
-    output_string = ceaser(input_string, key)
-if args.cipher == "vigenere":
-    output_string = vignere(input_string, args.key, args.coder)
+    output_string = caeser(input_string, key)
+if args.cipher == "vignere":
+    output_string = vignere(input_string, args.key, args.mode)
 
-if args.coder == "train":
+if args.mode == "train":
     text = ''
     if args.text_file:
         textFile = open(args.text_file, 'r')
@@ -152,7 +186,7 @@ if args.coder == "train":
         text = sys.stdin.read()
 
     train(text, args.model_file)
-elif args.coder == "hack":
+elif args.mode == "hack":
     json_file = open(args.model_file, 'r')
     default_stats = json.load(json_file)
     json_file.close()
