@@ -122,7 +122,6 @@ def letter_nums(word):
 
 
 def count_stat(word):
-    alphabet = lowercase_eng
     result = {}
     temp_word = word.lower()
     letter_size = letter_nums(temp_word)
@@ -143,10 +142,10 @@ def train(text, model):
 
 
 def minus_stats(stats_1, stats_2):
-    sum = float(0)
+    total = float(0)
     for x in stats_1.keys():
-        sum += abs(stats_1[x] - stats_2[x])
-    return sum
+        total += abs(stats_1[x] - stats_2[x])
+    return total
 
 
 def hack_caesar(encoded_text, default_stats_):
@@ -185,11 +184,10 @@ def main():
         output_string = vigenere(input_string, args.key, args.mode)
 
     if args.mode == "train":
-        text = ''
         if args.text_file:
-            textFile = open(args.text_file, 'r')
-            text = textFile.read()
-            textFile.close()
+            text_file = open(args.text_file, 'r')
+            text = text_file.read()
+            text_file.close()
         else:
             text = sys.stdin.read()
 
