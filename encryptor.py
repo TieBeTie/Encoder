@@ -45,31 +45,31 @@ uppercase_eng = string.ascii_uppercase
 
 
 def ind_lowercase(letter):
-    for sym in range(lowercase_eng):
+    for sym in range(len(lowercase_eng)):
         if letter == lowercase_eng[sym]:
             return sym
 
 
 def ind_uppercase(letter):
-    for sym in range(uppercase_eng):
+    for sym in range(len(uppercase_eng)):
         if letter == uppercase_eng[sym]:
             return sym
 
 
 def shift_letter(letter, key):
-    if letter.islower:
+    if letter.islower():
         return lowercase_eng[(ind_lowercase(letter) + key) %
                              len(lowercase_eng)]
-    elif letter.isupper:
+    elif letter.isupper():
         return uppercase_eng[(ind_uppercase(letter) + key) %
                              len(uppercase_eng)]
     return letter
 
 
 def reverse_letter(letter):
-    if letter.islower:
+    if letter.islower():
         return lowercase_eng[len(lowercase_eng) - (ind_lowercase(letter))]
-    elif letter.isupper:
+    elif letter.isupper():
         return uppercase_eng[len(uppercase_eng) - (ind_uppercase(letter))]
     return letter
 
@@ -78,7 +78,7 @@ def caesar(input_text, key=0):
     key = int(key)
     result = []
     for sym in input_text:
-        result.apppend(shift_letter(sym, key))
+        result.append(shift_letter(sym, key))
     return ''.join(result)
 
 
@@ -206,3 +206,7 @@ def main():
         output_file.close()
     else:
         print(output_string)
+
+
+if __name__ == "__main__":
+    main()
