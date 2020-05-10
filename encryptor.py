@@ -24,16 +24,11 @@ parser_decode.add_argument('--output-file', help='Путь к выходному
 
 parser_train = subparsers.add_parser('train', help='Искусственное обучение')
 parser_train.set_defaults(mode='train')
-parser_train.add_argument('--cipher', choices=['caesar', 'vigenere'],
-                          required=True, help='Введите шифр')
-parser_train.add_argument('--key', help='Ключ шифра', required=True)
-parser_train.add_argument('--input-file', help='Путь к входному файлу')
-parser_train.add_argument('--output-file', help='Путь к выfходному файлу')
+parser_train.add_argument('--model-file', help='Модель', required=True)
+parser_train.add_argument('--text-file', help='Путь')
 
 parser_hack = subparsers.add_parser('hack', help='Взлом by Vladislav Hacker')
 parser_hack.set_defaults(mode='hack')
-parser_hack.add_argument('--cipher', choices=['caesar', 'vigenere'],
-                         required=True, help='Введите шифр')
 parser_hack.add_argument('--input-file', help='Путь к входному файлу')
 parser_hack.add_argument('--output-file', help='Путь к выходному файлу')
 parser_hack.add_argument('--model-file', help='Модель обучения', required=True)
@@ -143,27 +138,39 @@ def train(text, model):
 
 def minus_stats(stats_1, stats_2):
     total = float(0)
-    for x in stats_1.keys():
+    for x in stats_1:
         total += abs(stats_1[x] - stats_2[x])
     return total
 
 
-def hack_caesar(encoded_text, default_stats_):
-    best_stats = None
-    best_index = len(lowercase_eng + 1)
+def new_stats(old_stats, i=1):
+    ans = {}
 
-    for i in range(1, best_index):
-        stats_tmp = count_stat(caesar(encoded_text, i))
-        difference = minus_stats(default_stats_, stats_tmp)
+    for letter_key in old_stats:
+        ans[caesar(letter_key, i)] = old_stats[letter_key]
+
+    return ans
+
+
+def hack_caesar(encoded_text, default_stats):
+    first_stats = count_stat(caesar(encoded_text, 1))
+    best_stats = minus_stats(default_stats, first_stats)
+    num_of_iters = len(lowercase_eng) + 1
+    min_index = 1
+
+    for i in range(2, num_of_iters):
+        stats_tmp = new_stats(first_stats, i - 1)
+        difference = minus_stats(default_stats, stats_tmp)
         if difference < best_stats:
             best_stats = difference
-            best_index = i
+            min_index = i
 
-    result = caesar(encoded_text, best_index)
+    result = caesar(encoded_text, min_index)
     return result
 
 
 def main():
+    global args
     input_string = ''
     output_string = ''
 
@@ -175,30 +182,35 @@ def main():
         else:
             input_string = sys.stdin.read()
 
-    if args.cipher == "caesar":
-        key = int(args.key)
-        if args.mode == "decode":
-            key = -key
-        output_string = caesar(input_string, key)
-    if args.cipher == "vigenere":
-        output_string = vigenere(input_string, args.key, args.mode)
+    if args.mode == "hack":
+        json_file = open(args.model_file, 'r')
+        default_stats = json.load(json_file)
+        json_file.close()
+        output_string = hack_caesar(input_string, default_stats)
 
-    if args.mode == "train":
+    elif args.mode == "train":
         if args.text_file:
             text_file = open(args.text_file, 'r')
             text = text_file.read()
             text_file.close()
         else:
             text = sys.stdin.read()
-
         train(text, args.model_file)
-    elif args.mode == "hack":
-        json_file = open(args.model_file, 'r')
-        default_stats = json.load(json_file)
-        json_file.close()
-        output_string = hack_caesar(input_string, default_stats)
+        return
 
-    if args.output_file:
+    if hasattr(args, 'cipher'):
+
+        if args.cipher == "caesar":
+            key = int(args.key)
+
+            if args.mode == "decode":
+                key = -key
+            output_string = caesar(input_string, key)
+
+        elif args.cipher == "vigenere":
+            output_string = vigenere(input_string, args.key, args.mode)
+
+    if hasattr(args, 'output_file') and args.output_file:
         output_file = open(args.output_file, 'w')
         output_file.write(output_string)
         output_file.close()
