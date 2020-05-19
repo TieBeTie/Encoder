@@ -146,15 +146,6 @@ def minus_stats(stats, shifted_stats, shift_stat):
     return total
 
 
-def new_stats(old_stats, i=1):
-    ans = {}
-
-    for letter_key in old_stats:
-        ans[caesar(letter_key, i)] = old_stats[letter_key]
-
-    return ans
-
-
 def hack_caesar(encoded_text, default_stats):
     first_stats = count_stat(caesar(encoded_text, 1))
     best_stats = minus_stats(default_stats, first_stats, 0)
