@@ -39,73 +39,42 @@ lowercase_eng = string.ascii_lowercase
 uppercase_eng = string.ascii_uppercase
 
 
-def ind_lowercase(letter):
-    return lowercase_eng.find(letter)
-
-
-def ind_uppercase(letter):
-    return uppercase_eng.find(letter)
-
-
-def shift_letter(letter, key):
-    if letter.islower():
-        return lowercase_eng[(ind_lowercase(letter) + key) %
-                             len(lowercase_eng)]
-    elif letter.isupper():
-        return uppercase_eng[(ind_uppercase(letter) + key) %
-                             len(uppercase_eng)]
-    return letter
-
-
-def reverse_letter(letter):
-    if letter.islower():
-        return lowercase_eng[len(lowercase_eng) - (ind_lowercase(letter))]
-    elif letter.isupper():
-        return uppercase_eng[len(uppercase_eng) - (ind_uppercase(letter))]
-    return letter
-
-
 def caesar(input_text, key=0):
-    key = int(key)
-    result = []
-    for sym in input_text:
-        result.append(shift_letter(sym, key))
-    return ''.join(result)
-
-
-def make_key_reverse(input_key=''):
-    result = []
-    for sym in input_key:
-        result.apppend(reverse_letter(sym))
-    return ''.join(result)
-
-
-def step(result, sym, ind, iteration):
-    result.append(shift_letter(sym, ind))
-    iteration += 1
+    key = lowercase_eng[key % len(lowercase_eng)]
+    return vigenere(input_text, key)
 
 
 def vigenere(input_text, encrypt_key='', encrypt_type='encode'):
+    base = 1
     if encrypt_type == 'decode':
-        encrypt_key = make_key_reverse(encrypt_key)
+        base = -1
 
     result = []
     iteration = 0
+    alphabet = ''
+    key_sym = ''
 
     for sym in input_text:
         if sym.islower():
-            key_order = ind_lowercase(encrypt_key[iteration].lower())
-            step(result, sym, key_order, iteration)
+            alphabet = lowercase_eng
+            key_sym = encrypt_key[iteration].lower()
 
         elif sym.isupper():
-            key_order = ind_uppercase(encrypt_key[iteration].upper())
-            step(result, sym, key_order, iteration)
+            alphabet = uppercase_eng
+            key_sym = encrypt_key[iteration].upper()
 
+        if sym in alphabet:
+            key_index = alphabet.index(key_sym)
+            result_letter = alphabet[(alphabet.index(sym) +
+                                      base * key_index) % len(alphabet)]
+            iteration += 1
         else:
-            result.apppend(sym)
+            result_letter = sym
 
         if iteration == len(encrypt_key):
             iteration = 0
+
+        result.append(result_letter)
 
     return ''.join(result)
 
@@ -140,25 +109,27 @@ def train(text, model):
 
 def minus_stats(stats, shifted_stats, shift_stat):
     total = 0.
-    for x in stats:
-        total += abs(stats[x] - shifted_stats[lowercase_eng[
-            (ind_lowercase(x) + shift_stat) % len(stats)]])
+    for x in lowercase_eng:
+        shifted_x = lowercase_eng[(lowercase_eng.index(x) +
+                                   shift_stat) % len(stats)]
+
+        if x in stats and shifted_x in shifted_stats:
+            total += abs(stats[x] - shifted_stats[shifted_x])
     return total
 
 
 def hack_caesar(encoded_text, default_stats):
-    first_stats = count_stat(caesar(encoded_text, 1))
+    first_stats = count_stat(caesar(encoded_text, 0))
     best_stats = minus_stats(default_stats, first_stats, 0)
-    num_of_iters = len(lowercase_eng) + 1
-    min_index = 1
+    min_index = 0
 
-    for i in range(1, num_of_iters):
+    for i in range(1, len(lowercase_eng)):
         difference = minus_stats(default_stats, first_stats, i)
         if difference < best_stats:
             best_stats = difference
             min_index = i
 
-    result = caesar(encoded_text, min_index)
+    result = caesar(encoded_text, -min_index)
     return result
 
 
@@ -167,13 +138,20 @@ def main():
     input_string = ''
     output_string = ''
 
-    if args.mode == 'encode' or args.mode == 'decode' or args.mode == 'hack':
-        if args.input_file:
-            input_file = open(args.input_file, 'r')
-            input_string = input_file.read()
-            input_file.close()
-        else:
-            input_string = sys.stdin.read()
+    if args.mode == "train":
+        args.input_file = args.text_file
+
+    if args.input_file:
+        input_file = open(args.input_file, 'r')
+        input_string = input_file.read()
+        input_file.close()
+    else:
+        input_string = sys.stdin.read()
+
+    if args.mode == "train":
+        text = input_string
+        train(text, args.model_file)
+        return
 
     if args.mode == 'encode' or args.mode == 'decode':
         if args.cipher == "caesar":
@@ -181,7 +159,7 @@ def main():
 
             if args.mode == "decode":
                 key = -key
-            output_string = caesar(input_string, key)
+            output_string = caesar(input_string, key, )
 
         elif args.cipher == "vigenere":
             output_string = vigenere(input_string, args.key, args.mode)
@@ -192,23 +170,12 @@ def main():
         json_file.close()
         output_string = hack_caesar(input_string, default_stats)
 
-    if args.mode == 'encode' or args.mode == 'decode' or args.mode == 'hack':
-        if args.output_file:
-            output_file = open(args.output_file, 'w')
-            output_file.write(output_string)
-            output_file.close()
-        else:
-            print(output_string)
-        return
-
-    if args.mode == "train":
-        if args.text_file:
-            text_file = open(args.text_file, 'r')
-            text = text_file.read()
-            text_file.close()
-        else:
-            text = sys.stdin.read()
-        train(text, args.model_file)
+    if args.output_file:
+        output_file = open(args.output_file, 'w')
+        output_file.write(output_string)
+        output_file.close()
+    else:
+        print(output_string)
 
 
 if __name__ == "__main__":
